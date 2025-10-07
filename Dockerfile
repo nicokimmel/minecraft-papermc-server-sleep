@@ -1,13 +1,14 @@
 # PaperMC (marctv) + Sleep (Java+Bedrock) + Auto-Shutdown (15m) + Geyser
 FROM marctv/minecraft-papermc-server:latest
 
-# Download sources (adjust to specific versions if needed)
 ARG MCSSS_URL="https://github.com/rtm516/mcsleepingserverstarter/releases/latest/download/mcsleepingserverstarter-linux-amd64"
 ARG MCESS_URL="https://github.com/Ceddix/mcEmptyServerStopper/releases/latest/download/mcEmptyServerStopper.jar"
 ARG GEYSER_URL="https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot"
 
 USER root
-RUN apk add --no-cache curl bash jq
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl ca-certificates jq \
+ && rm -rf /var/lib/apt/lists/*
 
 # Install mcsleepingserverstarter
 RUN curl -fsSL "$MCSSS_URL" -o /usr/local/bin/mcsss && chmod +x /usr/local/bin/mcsss
@@ -25,17 +26,17 @@ empty_seconds: 900
 announce:
   enabled: true
   interval_seconds: 60
-  message: "Server empty – shutdown in {time_left}s."
+  message: "Server empty - shutdown in {time_left}s."
 YAML
 
-# mcsleepingserverstarter config: listen on Java(25565/TCP) & Bedrock(19132/UDP)
+# mcsleepingserverstarter: listen on Java(25565/TCP) & Bedrock(19132/UDP)
 RUN mkdir -p /opt/mcsss \
  && cat > /opt/mcsss/mcsss.yaml <<'YAML'
 java:
   enabled: true
   listen_address: "0.0.0.0"
   port: 25565
-  motd: "Server sleeping… ping to wake"
+  motd: "Server sleeping... ping to wake"
   fake_players: 0
 bedrock:
   enabled: true
@@ -64,7 +65,7 @@ general:
   passthrough-player-counts: true
 YAML
 
-# Entrypoint: run mcsss (it starts Paper via /start on demand)
+# Entrypoint: run mcsss (starts Paper via /start on demand)
 RUN cat > /usr/local/bin/docker-entrypoint-mcsss.sh <<'BASH'
 #!/usr/bin/env bash
 set -euo pipefail

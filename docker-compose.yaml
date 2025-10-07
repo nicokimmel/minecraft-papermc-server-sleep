@@ -1,15 +1,14 @@
 services:
-  sync:
-    image: thunfischsync
+  minecraft:
+    image: papermc-sleep
     build: .
-    container_name: "sync"
+    container_name: "minecraft"
     restart: "unless-stopped"
     environment:
-      YOUTUBE_API_KEY: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-      CHANNEL_FILTER: "XXXXXXXXXXXXXXXXXXXXXXXX,XXXXXXXXXXXXXXXXXXXXXXXX"
+      EULA: "TRUE"
+      MEMORY: "6G"
     volumes:
-      - /opt/docker/sync/rooms.json:/sync/rooms.json:rw
+      - /opt/docker/minecraft/data:/data:rw
     ports:
-      - "3000:3000/tcp"
-    tty: true
-    stdin_open: true
+      - "25565:25565/tcp"
+      - "19132:19132/udp"
