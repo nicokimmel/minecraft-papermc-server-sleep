@@ -1,8 +1,8 @@
 # PaperMC (marctv) + Sleep (Java+Bedrock) + Auto-Shutdown (15m) + Geyser
-FROM marctv/minecraft-papermc-server:latest
+FROM marctv/minecraft-papermc-server:1.21.9
 
-ARG MCSSS_URL="https://github.com/vincss/mcsleepingserverstarter/releases/latest/download/mcsleepingserverstarter-linux-x64"
-ARG MCESS_URL="https://github.com/vincss/mcEmptyServerStopper/releases/latest/download/mcEmptyServerStopper-1.1.0.jar"
+ARG MCSSS_URL="https://github.com/vincss/mcsleepingserverstarter/releases/download/v1.11.3/mcsleepingserverstarter-linux-x64"
+ARG MCESS_URL="https://github.com/vincss/mcEmptyServerStopper/releases/download/v1.1.0/mcEmptyServerStopper-1.1.0.jar"
 ARG GEYSER_URL="https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot"
 
 USER root
