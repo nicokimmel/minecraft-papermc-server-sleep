@@ -33,7 +33,7 @@ fi
 # --- Write minimal sleepingSettings.yml (no defaults) or patch existing ---
 if [[ ! -f "${MC_SSS_SETTINGS}" ]]; then
   cat > "${MC_SSS_SETTINGS}" <<EOF
-serverPort: ${MC_PORT}
+serverPort: ${JAVA_PORT}
 bedrockPort: ${BEDROCK_PORT}
 minecraftCommand: "/opt/minecraft/docker-entrypoint.sh"
 minecraftWorkingDirectory: "/"
@@ -43,9 +43,9 @@ else
   # Update only the keys we care about, leave everything else untouched.
   # serverPort
   if grep -q '^[[:space:]]*serverPort:' "${MC_SSS_SETTINGS}"; then
-    sed -i "s/^\s*serverPort:\s*.*/serverPort: ${MC_PORT}/" "${MC_SSS_SETTINGS}"
+    sed -i "s/^\s*serverPort:\s*.*/serverPort: ${JAVA_PORT}/" "${MC_SSS_SETTINGS}"
   else
-    printf 'serverPort: %s\n' "${MC_PORT}" >> "${MC_SSS_SETTINGS}"
+    printf 'serverPort: %s\n' "${JAVA_PORT}" >> "${MC_SSS_SETTINGS}"
   fi
   # bedrockPort
   if grep -q '^[[:space:]]*bedrockPort:' "${MC_SSS_SETTINGS}"; then
