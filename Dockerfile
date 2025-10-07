@@ -1,84 +1,54 @@
-# PaperMC (marctv) + Sleep (Java+Bedrock) + Auto-Shutdown (15m) + Geyser
+# Base image: PaperMC from marctv
 FROM marctv/minecraft-papermc-server:1.21.9
 
-ARG MCSSS_URL="https://github.com/vincss/mcsleepingserverstarter/releases/download/v1.11.3/mcsleepingserverstarter-linux-x64"
-ARG MCESS_URL="https://github.com/vincss/mcEmptyServerStopper/releases/download/v1.1.0/mcEmptyServerStopper-1.1.0.jar"
-ARG GEYSER_URL="https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot"
-
+# Use root to install helper packages
 USER root
-RUN apt-get update \
- && apt-get install -y --no-install-recommends curl ca-certificates jq \
- && rm -rf /var/lib/apt/lists/*
 
-# Install mcsleepingserverstarter
-RUN curl -fsSL "$MCSSS_URL" -o /usr/local/bin/mcsss && chmod +x /usr/local/bin/mcsss
+# Install runtime helpers (Debian/Ubuntu)
+# - curl: download artifacts at runtime
+# - jq: simple JSON editing (if needed later)
+# - ca-certificates: TLS for curl
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl jq ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
-# Plugins
-RUN mkdir -p /data/plugins \
- && curl -fsSL "$MCESS_URL" -o /data/plugins/mcEmptyServerStopper.jar \
- && curl -fsSL "$GEYSER_URL" -o /data/plugins/Geyser-Spigot.jar
+# Create directories used by our scripts
+RUN mkdir -p /opt/mcsss /opt/minecraft/custom-init
 
-# mcEmptyServerStopper: shutdown after 900s idle
-RUN mkdir -p /data/plugins/mcEmptyServerStopper \
- && cat > /data/plugins/mcEmptyServerStopper/config.yml <<'YAML'
-enabled: true
-empty_seconds: 900
-announce:
-  enabled: true
-  interval_seconds: 60
-  message: "Server empty - shutdown in {time_left}s."
-YAML
+# Copy runtime init + wrapper
+COPY init.sh /opt/minecraft/init.sh
+COPY start.sh /opt/minecraft/start.sh
+RUN chmod +x /opt/minecraft/init.sh /opt/minecraft/start.sh
 
-# mcsleepingserverstarter: listen on Java(25565/TCP) & Bedrock(19132/UDP)
-RUN mkdir -p /opt/mcsss \
- && cat > /opt/mcsss/mcsss.yaml <<'YAML'
-java:
-  enabled: true
-  listen_address: "0.0.0.0"
-  port: 25565
-  motd: "Server sleeping... ping to wake"
-  fake_players: 0
-bedrock:
-  enabled: true
-  listen_address: "0.0.0.0"
-  port: 19132
-process:
-  start_command: ["/opt/minecraft/docker-entrypoint.sh"]
-  start_grace_seconds: 20
-logging:
-  level: "info"
-YAML
+# -------- Default environment (override at `docker run` if needed) --------
+# Java & Bedrock ports
+ENV JAVA_PORT=25565 \
+    BEDROCK_PORT=19132
 
-# Minimal Geyser config (Bedrock on 19132/UDP, proxy to local Java)
-RUN mkdir -p /data/plugins/Geyser-Spigot \
- && cat > /data/plugins/Geyser-Spigot/config.yml <<'YAML'
-bedrock:
-  address: 0.0.0.0
-  port: 19132
-  clone-remote-port: false
-remote:
-  address: 127.0.0.1
-  port: 25565
-  auth-type: online
-general:
-  passthrough-motd: true
-  passthrough-player-counts: true
-YAML
+# Idle shutdown: 15 minutes (900 seconds)
+ENV MC_EMPTY_STOPPER_IDLE_SECONDS=900
 
-# Entrypoint: run mcsss (starts Paper via /start on demand)
-RUN cat > /usr/local/bin/docker-entrypoint-mcsss.sh <<'BASH'
-#!/usr/bin/env bash
-set -euo pipefail
-mkdir -p /data
-exec /usr/local/bin/mcsss --config /opt/mcsss/mcsss.yaml
-BASH
-RUN chmod +x /usr/local/bin/docker-entrypoint-mcsss.sh
+# Download sources (override to pin versions)
+# Geyser (Spigot) latest
+ENV GEYSER_DOWNLOAD_URL="https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot"
 
+# mcSleepingServerStarter (Linux amd64). Set to your preferred release asset.
+# Example (placeholder): latest release binary URL
+ENV MC_SSS_DOWNLOAD_URL="https://github.com/vincss/mcsleepingserverstarter/releases/download/v1.11.3/mcsleepingserverstarter-linux-x64"
+
+# mcEmptyServerStopper plugin JAR (provide a stable URL to your preferred build)
+# Placeholder; set your own if you have a different source
+ENV MC_ESS_DOWNLOAD_URL="https://github.com/vincss/mcEmptyServerStopper/releases/download/v1.1.0/mcEmptyServerStopper-1.1.0.jar"
+
+# Where the Paper server data lives in the marctv image
+# (marctv uses /data as the persistent volume by default)
+ENV MC_DATA_DIR="/data"
+
+# Expose ports
 EXPOSE 25565/tcp
 EXPOSE 19132/udp
 
-ENV EULA=TRUE MEMORY=4G TYPE=PAPER
-
-RUN if id minecraft >/dev/null 2>&1; then chown -R minecraft:minecraft /data /opt/mcsss; fi
-
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint-mcsss.sh"]
+# Important: we exec the marctv entrypoint *through* mcsleepingserverstarter.
+# Our wrapper first runs /opt/minecraft/init.sh (download/configure plugins),
+# then launches mcsss so it can wake the Paper server when players connect.
+ENTRYPOINT ["/opt/minecraft/start.sh"]
