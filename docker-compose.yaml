@@ -1,0 +1,15 @@
+services:
+  sync:
+    image: thunfischsync
+    build: .
+    container_name: "sync"
+    restart: "unless-stopped"
+    environment:
+      YOUTUBE_API_KEY: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      CHANNEL_FILTER: "XXXXXXXXXXXXXXXXXXXXXXXX,XXXXXXXXXXXXXXXXXXXXXXXX"
+    volumes:
+      - /opt/docker/sync/rooms.json:/sync/rooms.json:rw
+    ports:
+      - "3000:3000/tcp"
+    tty: true
+    stdin_open: true
