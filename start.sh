@@ -28,20 +28,42 @@ if [[ ! -x "${MC_SSS_BIN}" ]]; then
   exit 1
 fi
 
-# Build a minimal config file for mcsss
-cat >/opt/mcsss/config.json <<EOF
-{
-  "server": {
-    "startCommand": "/opt/minecraft/docker-entrypoint.sh",
-    "workingDirectory": "/",
-    "env": {}
-  },
-  "listeners": [
-    { "type": "java", "listen": "0.0.0.0:${JAVA_PORT}" },
-    { "type": "bedrock", "listen": "0.0.0.0:${BEDROCK_PORT}/udp" }
-  ],
-  "log": { "level": "info" }
-}
+# --- Write minimal sleepingSettings.yml (no defaults) or patch existing ---
+if [[ ! -f "${MCSS_SETTINGS}" ]]; then
+  cat > "${MCSS_SETTINGS}" <<EOF
+serverPort: ${MC_PORT}
+bedrockPort: ${BEDROCK_PORT}
+minecraftCommand: "/opt/minecraft/docker-entrypoint.sh"
+minecraftWorkingDirectory: "/"
 EOF
+  echo "[start] Wrote minimal ${MCSS_SETTINGS}"
+else
+  # Update only the keys we care about, leave everything else untouched.
+  # serverPort
+  if grep -q '^[[:space:]]*serverPort:' "${MCSS_SETTINGS}"; then
+    sed -i "s/^\s*serverPort:\s*.*/serverPort: ${MC_PORT}/" "${MCSS_SETTINGS}"
+  else
+    printf 'serverPort: %s\n' "${MC_PORT}" >> "${MCSS_SETTINGS}"
+  fi
+  # bedrockPort
+  if grep -q '^[[:space:]]*bedrockPort:' "${MCSS_SETTINGS}"; then
+    sed -i "s/^\s*bedrockPort:\s*.*/bedrockPort: ${BEDROCK_PORT}/" "${MCSS_SETTINGS}"
+  else
+    printf 'bedrockPort: %s\n' "${BEDROCK_PORT}" >> "${MCSS_SETTINGS}"
+  fi
+  # minecraftCommand
+  if grep -q '^[[:space:]]*minecraftCommand:' "${MCSS_SETTINGS}"; then
+    sed -i 's#^\s*minecraftCommand:.*#minecraftCommand: "/opt/minecraft/docker-entrypoint.sh"#' "${MCSS_SETTINGS}"
+  else
+    printf 'minecraftCommand: "/opt/minecraft/docker-entrypoint.sh"\n' >> "${MCSS_SETTINGS}"
+  fi
+  # minecraftWorkingDirectory
+  if grep -q '^[[:space:]]*minecraftWorkingDirectory:' "${MCSS_SETTINGS}"; then
+    sed -i 's#^\s*minecraftWorkingDirectory:.*#minecraftWorkingDirectory: "/"#' "${MCSS_SETTINGS}"
+  else
+    printf 'minecraftWorkingDirectory: "/"\n' >> "${MCSS_SETTINGS}"
+  fi
+  echo "[start] Patched ${MCSS_SETTINGS} (ports/command/workingDirectory)."
+fi
 
 exec "${MC_SSS_BIN}" -config /opt/mcsss/config.json
