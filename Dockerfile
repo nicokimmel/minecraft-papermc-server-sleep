@@ -80,6 +80,5 @@ EXPOSE 19132/udp
 ENV EULA=TRUE MEMORY=4G TYPE=PAPER
 
 RUN if id minecraft >/dev/null 2>&1; then chown -R minecraft:minecraft /data /opt/mcsss; fi
-USER minecraft
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint-mcsss.sh"]
