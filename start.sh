@@ -4,13 +4,21 @@ set -euo pipefail
 # --- Run runtime initialization (downloads, config) ---
 /opt/minecraft/init.sh
 
-# --- Launch mcsleepingserverstarter as PID 1 ---
-# Notes:
-# - We let mcsss listen on Java TCP and Bedrock UDP.
-# - On incoming connection, mcsss will execute the marctv entrypoint
-#   which starts PaperMC inside the same container.
-# - If mcEmptyServerStopper stops the server after idle, mcsss keeps listening.
+# --- Ensure dockeruser:dockergroup exist (idempotent) ---
+PUID="${PUID:-1001}"
+PGID="${PGID:-1001}"
 
+# Create group if missing
+if ! getent group dockergroup >/dev/null 2>&1; then
+  groupadd -g "${PGID}" dockergroup || true
+fi
+
+# Create user if missing (no home, nologin shell)
+if ! id -u dockeruser >/dev/null 2>&1; then
+  useradd -u "${PUID}" -g dockergroup -M -s /usr/sbin/nologin dockeruser || true
+fi
+
+# --- Launch mcsleepingserverstarter as PID 1 ---
 JAVA_PORT="${JAVA_PORT:-25565}"
 BEDROCK_PORT="${BEDROCK_PORT:-19132}"
 

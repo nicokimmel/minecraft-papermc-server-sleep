@@ -79,7 +79,7 @@ fi
 
 # 4) Configure mcEmptyServerStopper (idle shutdown after X seconds)
 #    Many plugins generate their config on first run; we seed a minimal config if absent.
-MC_ESS_DIR="${MC_DATA_DIR}/plugins/mcEmptyServerStopper"
+MC_ESS_DIR="${MC_DATA_DIR}/plugins/EmptyServerStopper"
 MC_ESS_CONFIG="${MC_ESS_DIR}/config.yml"
 
 mkdir -p "${MC_ESS_DIR}"
