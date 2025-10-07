@@ -43,7 +43,7 @@ bedrock:
   listen_address: "0.0.0.0"
   port: 19132
 process:
-  start_command: ["/start"]
+  start_command: ["/opt/minecraft/docker-entrypoint.sh"]
   start_grace_seconds: 20
 logging:
   level: "info"
